@@ -20,7 +20,7 @@ export const createCampaignSchema = z.object({
       }),
     startTime: z
       .string()
-      .datetime({ message: 'startTime must be a valid ISO-8601 string' })
+      .refine((val) => !isNaN(Date.parse(val)), { message: 'startTime must be a valid date string' })
       .or(z.date()),
     delayMs: z.coerce
       .number()

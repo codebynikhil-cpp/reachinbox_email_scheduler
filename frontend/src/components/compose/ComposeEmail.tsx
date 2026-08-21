@@ -82,7 +82,7 @@ export function ComposeEmail({ isOpen, onClose, onSuccess }: ComposeEmailProps) 
     e.preventDefault();
     if (!validate()) return;
 
-    const result = await create({
+    const res = await create({
       subject: form.subject.trim(),
       body: form.body.trim(),
       recipients: uploadResult!.emails,
@@ -91,15 +91,15 @@ export function ComposeEmail({ isOpen, onClose, onSuccess }: ComposeEmailProps) 
       hourlyLimit: Number(form.hourlyLimit),
     });
 
-    if (result) {
+    if (res.success && res.data) {
       toast(
-        `Campaign scheduled successfully! ${result.totalScheduled} email${result.totalScheduled !== 1 ? 's' : ''} queued.`,
+        `Campaign scheduled successfully! ${res.data.totalScheduled} email${res.data.totalScheduled !== 1 ? 's' : ''} queued.`,
         'success'
       );
       handleClose();
       onSuccess();
     } else {
-      toast('Failed to schedule campaign. Please try again.', 'error');
+      toast(res.error || 'Failed to schedule campaign. Please try again.', 'error');
     }
   };
 

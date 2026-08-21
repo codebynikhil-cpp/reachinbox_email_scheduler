@@ -33,7 +33,7 @@ export async function addEmailJob(
 ): Promise<void> {
   const now = Date.now();
   const delay = Math.max(0, scheduledAt.getTime() - now);
-  const jobId = `email:${emailId}`;
+  const jobId = `email-${emailId}`;
 
   await emailQueue.add(
     'send-email',
@@ -61,7 +61,7 @@ export async function addEmailJobsBulk(
     data: { emailId: email.id },
     opts: {
       delay: Math.max(0, email.scheduledAt.getTime() - now),
-      jobId: `email:${email.id}`,
+      jobId: `email-${email.id}`,
     },
   }));
 

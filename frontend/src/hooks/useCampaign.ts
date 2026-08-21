@@ -17,19 +17,26 @@ export function useCampaign() {
   });
 
   const create = useCallback(
-    async (payload: CreateCampaignPayload): Promise<CreateCampaignResponse | null> => {
+    async (
+      payload: CreateCampaignPayload
+    ): Promise<{ success: boolean; data?: CreateCampaignResponse; error?: string }> => {
       setState({ loading: true, error: null, result: null });
       try {
         const result = await campaignService.create(payload);
         setState({ loading: false, error: null, result });
-        return result;
+        return { success: true, data: result };
       } catch (err) {
         let message = 'Failed to schedule campaign. Please try again.';
-        if (axios.isAxiosError(err) && err.response?.data?.message) {
-          message = err.response.data.message as string;
+        if (axios.isAxiosError(err)) {
+          const data = err.response?.data;
+          if (data?.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+            message = `${data.message || 'Validation failed'}: ${data.errors.map((e: { field?: string; message: string }) => e.message).join(', ')}`;
+          } else if (data?.message) {
+            message = data.message as string;
+          }
         }
         setState({ loading: false, error: message, result: null });
-        return null;
+        return { success: false, error: message };
       }
     },
     []

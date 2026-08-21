@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from '../services/auth.service';
 import { env } from '../config/env';
+import { logger } from '../utils/logger';
 import { AuthenticatedRequest } from '../types';
 import { UnauthorizedError, BadRequestError } from '../utils/errors';
 
@@ -8,17 +9,39 @@ export class AuthController {
   /**
    * Redirects user to Google OAuth login URL
    */
-  public googleAuth(_req: Request, res: Response): void {
-    const url = authService.getGoogleAuthUrl();
-    res.redirect(url);
+  public googleAuth(_req: Request, res: Response, next: NextFunction): void {
+    try {
+      if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
+        res.status(400).json({
+          success: false,
+          message: 'Google OAuth is not configured on the server. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.',
+        });
+        return;
+      }
+      const url = authService.getGoogleAuthUrl();
+      res.redirect(url);
+    } catch (error) {
+      next(error);
+    }
   }
 
   /**
-   * Returns Google OAuth URL as JSON (useful for custom frontend triggers)
+   * Returns Google OAuth URL as JSON
    */
-  public getGoogleAuthUrl(_req: Request, res: Response): void {
-    const url = authService.getGoogleAuthUrl();
-    res.status(200).json({ url });
+  public getGoogleAuthUrl(_req: Request, res: Response, next: NextFunction): void {
+    try {
+      if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
+        res.status(400).json({
+          success: false,
+          message: 'Google OAuth is not configured on the server.',
+        });
+        return;
+      }
+      const url = authService.getGoogleAuthUrl();
+      res.status(200).json({ success: true, url });
+    } catch (error) {
+      next(error);
+    }
   }
 
   /**
@@ -27,29 +50,45 @@ export class AuthController {
   public async googleCallback(
     req: Request,
     res: Response,
-    next: NextFunction
+    _next: NextFunction
   ): Promise<void> {
     try {
       const code = req.query.code as string;
-      if (!code) {
-        throw new BadRequestError('Missing authorization code in query parameter');
+      const oauthError = req.query.error as string;
+
+      if (oauthError) {
+        logger.warn('Google OAuth returned error query param:', { oauthError });
+        const encodedReason = encodeURIComponent(oauthError);
+        res.redirect(`${env.FRONTEND_URL}/login?error=${encodedReason}`);
+        return;
       }
 
-      const { token, user } = await authService.handleGoogleCallback(code);
+      if (!code) {
+        logger.warn('Google OAuth callback missing code');
+        res.redirect(`${env.FRONTEND_URL}/login?error=missing_code`);
+        return;
+      }
+
+      const { token } = await authService.handleGoogleCallback(code);
 
       // Set secure HTTP-only cookie
       res.cookie('token', token, {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
-      // Redirect back to frontend dashboard with token
-      const redirectUrl = `${env.FRONTEND_URL}/dashboard?token=${token}`;
-      res.redirect(redirectUrl);
+      // Redirect back to frontend dashboard (NO token in URL)
+      res.redirect(`${env.FRONTEND_URL}/dashboard`);
     } catch (error) {
-      next(error);
+      const msg = error instanceof Error ? error.message : String(error);
+      logger.error('Google OAuth callback handler caught error:', {
+        error: msg,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      const encodedMsg = encodeURIComponent(msg);
+      res.redirect(`${env.FRONTEND_URL}/login?error=${encodedMsg}`);
     }
   }
 
@@ -83,7 +122,7 @@ export class AuthController {
     res.clearCookie('token', {
       httpOnly: true,
       secure: env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
     });
 
     res.status(200).json({
