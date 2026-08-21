@@ -4,7 +4,7 @@ A high-performance, fault-tolerant, distributed Email Job Scheduler built for Ou
 
 ---
 
-## 🔐 Google OAuth Setup
+## Google OAuth Setup
 
 > **Note for Reviewers**:
 > The deployed application uses the application developer's Google OAuth credentials. Reviewers can sign in using their own Google accounts and do not need to create Google OAuth credentials.
@@ -63,7 +63,7 @@ To set up real Google OAuth for local development or custom deployments:
 
 ---
 
-## ⚡ Quick Start & Development
+## Quick Start & Development
 
 ### 1. Start Infrastructure (PostgreSQL & Redis)
 ```bash
@@ -93,7 +93,7 @@ npm run dev
 
 ---
 
-## 🧪 Running Automated Tests
+## Running Automated Tests
 
 Run the full suite of 25+ integration & unit tests:
 ```bash
@@ -103,7 +103,7 @@ npm test
 
 ---
 
-## 🛠️ Tech Stack & Key Features
+## Tech Stack & Key Features
 
 - **Frontend**: React, TypeScript, Vite, Tailwind CSS, Lucide Icons
 - **Backend**: Node.js, Express, TypeScript, Prisma ORM, PostgreSQL
