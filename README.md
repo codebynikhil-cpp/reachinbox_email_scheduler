@@ -10,7 +10,7 @@ A production-grade, distributed, fault-tolerant Email Scheduling & Dispatch Plat
 
 ---
 
-## 🌐 Live Production Deployments
+##  Live Production Deployments
 
 - **Live Application**: [https://reachinbox-email-scheduler-orcin.vercel.app](https://reachinbox-email-scheduler-orcin.vercel.app)
 - **Live Backend API**: [https://reachinbox-email-scheduler-g01t.onrender.com](https://reachinbox-email-scheduler-g01t.onrender.com)
@@ -21,7 +21,7 @@ A production-grade, distributed, fault-tolerant Email Scheduling & Dispatch Plat
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```
                                   ┌────────────────────────────────┐
@@ -63,7 +63,7 @@ A production-grade, distributed, fault-tolerant Email Scheduling & Dispatch Plat
 
 ---
 
-## 🚀 Key Engineering Highlights & Requirements
+## Key Engineering Highlights & Requirements
 
 ### 1. No Polling / No Cron Database Scanners
 - Instead of running periodic `setInterval` or cron database queries to find due emails, emails are enqueued directly to **BullMQ as timestamp-delayed jobs**.
@@ -94,7 +94,7 @@ A production-grade, distributed, fault-tolerant Email Scheduling & Dispatch Plat
 
 ---
 
-## 💻 Local Setup & Quickstart Guide
+## Local Setup & Quickstart Guide
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/) (v20.x or higher)
@@ -173,7 +173,7 @@ npm test
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```text
 reachinbox_email_scheduler/
@@ -208,7 +208,7 @@ reachinbox_email_scheduler/
 
 ---
 
-## 🛡️ Security Best Practices Implemented
+## Security Best Practices Implemented
 
 - **No Secrets in Source Control**: All sensitive keys, connection strings, and OAuth credentials are managed via environment variables.
 - **HttpOnly Cookies**: Authentication session JWTs are stored in `HttpOnly`, `SameSite`, `Secure` cookies preventing XSS token theft.
