@@ -21,9 +21,24 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [redirecting, setRedirecting] = useState(false);
 
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   useEffect(() => {
     if (!loading && isAuthenticated) {
       void navigate('/dashboard', { replace: true });
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const errParam = params.get('error');
+    if (errParam) {
+      const decoded = decodeURIComponent(errParam);
+      if (decoded === 'access_denied') {
+        setErrorMsg('Google OAuth Access Denied. Make sure your Google email is added under "Test users" in Google Cloud Console OAuth consent screen.');
+      } else if (decoded.includes('redirect_uri_mismatch')) {
+        setErrorMsg('Redirect URI Mismatch. Make sure http://localhost:5000/api/auth/google/callback is added under Authorized Redirect URIs in Google Cloud Console.');
+      } else {
+        setErrorMsg(`Google OAuth error: ${decoded}`);
+      }
     }
   }, [isAuthenticated, loading, navigate]);
 
@@ -83,6 +98,12 @@ export function LoginPage() {
                 Sign in to manage your email campaigns
               </p>
             </div>
+
+            {errorMsg && (
+              <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs text-center">
+                {errorMsg}
+              </div>
+            )}
 
             {/* Google Login Button */}
             <Button

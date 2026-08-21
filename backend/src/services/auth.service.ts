@@ -22,12 +22,19 @@ export class AuthService {
    */
   public getGoogleAuthUrl(): string {
     if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
-      logger.warn('Google OAuth credentials not configured in .env');
+      throw new BadRequestError('Google OAuth is not configured on the server. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.');
     }
 
-    return this.oauth2Client.generateAuthUrl({
+    const client = new OAuth2Client(
+      env.GOOGLE_CLIENT_ID.trim(),
+      env.GOOGLE_CLIENT_SECRET.trim(),
+      env.GOOGLE_CALLBACK_URL.trim()
+    );
+
+    return client.generateAuthUrl({
       access_type: 'offline',
       scope: [
+        'openid',
         'https://www.googleapis.com/auth/userinfo.profile',
         'https://www.googleapis.com/auth/userinfo.email',
       ],
@@ -40,12 +47,22 @@ export class AuthService {
    */
   public async handleGoogleCallback(code: string): Promise<{ token: string; user: UserPayload }> {
     try {
-      const { tokens } = await this.oauth2Client.getToken(code);
-      this.oauth2Client.setCredentials(tokens);
+      if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
+        throw new BadRequestError('Google OAuth is not configured on the server.');
+      }
 
-      const ticket = await this.oauth2Client.verifyIdToken({
+      const client = new OAuth2Client(
+        env.GOOGLE_CLIENT_ID.trim(),
+        env.GOOGLE_CLIENT_SECRET.trim(),
+        env.GOOGLE_CALLBACK_URL.trim()
+      );
+
+      const { tokens } = await client.getToken(code);
+      client.setCredentials(tokens);
+
+      const ticket = await client.verifyIdToken({
         idToken: tokens.id_token!,
-        audience: env.GOOGLE_CLIENT_ID,
+        audience: env.GOOGLE_CLIENT_ID.trim(),
       });
 
       const payload = ticket.getPayload();
@@ -89,10 +106,11 @@ export class AuthService {
 
       return { token, user: userPayload };
     } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error);
       logger.error('Google OAuth callback failed', {
-        error: error instanceof Error ? error.message : String(error),
+        error: errMsg,
       });
-      throw new UnauthorizedError('Google OAuth authentication failed');
+      throw new UnauthorizedError(errMsg);
     }
   }
 

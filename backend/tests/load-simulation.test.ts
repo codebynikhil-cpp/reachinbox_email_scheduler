@@ -92,13 +92,13 @@ describe('100+ Email Load & Concurrency Simulation', () => {
   it('should guarantee deterministic BullMQ job IDs for 100 emails (no duplicate queue jobs)', () => {
     const emailIds = Array.from({ length: 100 }, (_, i) => `email-uuid-${i}`);
 
-    const jobIds = emailIds.map((id) => `email:${id}`);
+    const jobIds = emailIds.map((id) => `email-${id}`);
     const uniqueJobIds = new Set(jobIds);
 
     expect(uniqueJobIds.size).toBe(100);
 
     // Enqueueing the same list twice yields exact same IDs
-    const duplicatePassJobIds = emailIds.map((id) => `email:${id}`);
+    const duplicatePassJobIds = emailIds.map((id) => `email-${id}`);
     expect(duplicatePassJobIds).toEqual(jobIds);
   });
 });

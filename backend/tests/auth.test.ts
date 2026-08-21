@@ -56,12 +56,29 @@ describe('AuthService & Auth Middleware', () => {
 
   it('should accept valid Bearer token in Authorization header', async () => {
     const token = authService.generateJwt(sampleUser);
-    // GET /api/auth/me should reach the controller
     const res = await request(app)
       .get('/api/auth/me')
       .set('Authorization', `Bearer ${token}`);
 
-    // If DB user doesn't exist, it returns 401/404 from getUserById, but auth middleware succeeded
     expect(res.status).not.toBe(403);
+  });
+
+  it('should handle /api/auth/google OAuth redirect endpoint', async () => {
+    const res = await request(app).get('/api/auth/google');
+    // When credentials are set in .env, it redirects (302) to accounts.google.com
+    // When unconfigured, it returns 400
+    if (res.status === 302) {
+      expect(res.headers.location).toContain('accounts.google.com');
+    } else {
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    }
+  });
+
+  it('should support logging out via POST /api/auth/logout', async () => {
+    const res = await request(app).post('/api/auth/logout');
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.headers['set-cookie']).toBeDefined();
   });
 });
