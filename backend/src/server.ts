@@ -5,11 +5,16 @@ import { disconnectRedis } from './config/redis';
 import { campaignService } from './services/campaign.service';
 import { logger } from './utils/logger';
 
+import { createEmailWorker } from './workers/email.worker';
+
 const PORT = env.PORT;
 
 async function startServer() {
   try {
-    // Attempt DB connection & reconcile scheduled jobs
+    // 1. Initialize BullMQ email background worker
+    const emailWorker = createEmailWorker();
+
+    // 2. Attempt DB connection & reconcile scheduled jobs
     await connectDatabase()
       .then(async () => {
         const reconciled = await campaignService.reconcileScheduledJobs();
@@ -35,6 +40,7 @@ async function startServer() {
       logger.info(`Received ${signal}. Starting graceful shutdown...`);
       server.close(async () => {
         logger.info('HTTP server closed.');
+        await emailWorker.close();
         await disconnectDatabase();
         await disconnectRedis();
         logger.info('Graceful shutdown completed. Exiting process.');
