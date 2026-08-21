@@ -25,12 +25,13 @@ export interface SendSlotResult {
  * Returns: [allowed (1 or 0), currentCount]
  */
 const RATE_LIMIT_LUA_SCRIPT = `
-  local current = redis.call('INCR', KEYS[1])
-  if current == 1 then
-    redis.call('EXPIRE', KEYS[1], tonumber(ARGV[2]))
-  end
+  local current = tonumber(redis.call('GET', KEYS[1]) or '0')
   local maxLimit = tonumber(ARGV[1])
-  if current <= maxLimit then
+  if current < maxLimit then
+    current = redis.call('INCR', KEYS[1])
+    if current == 1 then
+      redis.call('EXPIRE', KEYS[1], tonumber(ARGV[2]))
+    end
     return {1, current}
   else
     return {0, current}
