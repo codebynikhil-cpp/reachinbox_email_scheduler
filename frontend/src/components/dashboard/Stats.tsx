@@ -40,11 +40,22 @@ function StatSkeleton() {
   );
 }
 
-export function Stats() {
+interface StatsProps {
+  refreshKey?: number;
+}
+
+export function Stats({ refreshKey }: StatsProps = {}) {
   const { stats, loading, fetch } = useEmailStats();
 
   useEffect(() => {
     void fetch();
+  }, [fetch, refreshKey]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      void fetch();
+    }, 4000);
+    return () => clearInterval(interval);
   }, [fetch]);
 
   const cards = [

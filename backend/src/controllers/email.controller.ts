@@ -71,7 +71,7 @@ export class EmailController {
       }
 
       const stats = await emailService.getEmailStats(user.id);
-      res.status(200).json({ success: true, data: stats });
+      res.status(200).json({ success: true, data: stats, stats });
     } catch (error) {
       next(error);
     }

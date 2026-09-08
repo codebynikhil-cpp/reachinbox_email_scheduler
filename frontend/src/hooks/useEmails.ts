@@ -73,7 +73,10 @@ export function useEmailStats() {
     setError(null);
     try {
       const result = await emailService.getStats();
-      setStats(result.stats);
+      const s = result.data || result.stats || (result as unknown as EmailStats);
+      if (s) {
+        setStats(s);
+      }
     } catch {
       setError('Failed to load stats.');
     } finally {

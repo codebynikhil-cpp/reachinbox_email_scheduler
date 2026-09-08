@@ -51,7 +51,7 @@ export function DashboardPage() {
         </div>
 
         {/* Stats */}
-        <Stats />
+        <Stats refreshKey={refreshKey} />
 
         {/* Tab navigation + table */}
         <div className="space-y-4">

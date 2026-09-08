@@ -79,7 +79,8 @@ export interface EmailStats {
 
 export interface EmailStatsResponse {
   success: boolean;
-  stats: EmailStats;
+  data?: EmailStats;
+  stats?: EmailStats;
 }
 
 // ─── Campaign ────────────────────────────────────────────────────────────────
