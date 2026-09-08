@@ -245,7 +245,10 @@ export class ElasticsearchService {
         where,
         skip: from,
         take: limit,
-        orderBy: { scheduledAt: 'desc' },
+        orderBy:
+          status === 'SENT'
+            ? [{ updatedAt: 'desc' }, { createdAt: 'desc' }]
+            : [{ createdAt: 'desc' }, { scheduledAt: 'desc' }],
         include: {
           campaign: {
             select: { subject: true },

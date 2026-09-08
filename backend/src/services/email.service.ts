@@ -44,7 +44,10 @@ export class EmailService {
             },
           },
         },
-        orderBy: { scheduledAt: 'asc' },
+        orderBy: [
+          { createdAt: 'desc' },
+          { scheduledAt: 'desc' },
+        ],
         skip,
         take: limit,
       }),
@@ -116,7 +119,10 @@ export class EmailService {
             },
           },
         },
-        orderBy: { sentAt: 'desc' },
+        orderBy: [
+          { updatedAt: 'desc' },
+          { createdAt: 'desc' },
+        ],
         skip,
         take: limit,
       }),

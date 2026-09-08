@@ -125,7 +125,23 @@ export class CampaignService {
         logger.info(`Reconciled ${staleResult.count} stale PROCESSING emails back to SCHEDULED.`);
       }
 
-      // 2. Fetch all SCHEDULED emails to ensure they are enqueued in BullMQ
+      // 2. Permanently mark emails that exceeded max retry attempts (>= 5) as FAILED
+      const maxAttemptsResult = await prisma.email.updateMany({
+        where: {
+          status: EmailStatus.SCHEDULED,
+          attempts: { gte: 5 },
+        },
+        data: {
+          status: EmailStatus.FAILED,
+          error: 'Maximum retry attempts exceeded during previous dispatch',
+        },
+      });
+
+      if (maxAttemptsResult.count > 0) {
+        logger.info(`Marked ${maxAttemptsResult.count} max-attempt emails as FAILED.`);
+      }
+
+      // 3. Fetch all active SCHEDULED emails to ensure they are enqueued and running in BullMQ
       const pendingEmails = await prisma.email.findMany({
         where: {
           status: EmailStatus.SCHEDULED,
@@ -142,7 +158,41 @@ export class CampaignService {
       }
 
       logger.info(`Reconciling ${pendingEmails.length} SCHEDULED emails with BullMQ...`);
-      await addEmailJobsBulk(pendingEmails);
+      const now = Date.now();
+
+      // For each pending email, clean up any previous stalled job key in Redis and enqueue fresh
+      for (const email of pendingEmails) {
+        const delay = Math.max(0, email.scheduledAt.getTime() - now);
+
+        try {
+          const oldJob = await emailQueue.getJob(`email-${email.id}`);
+          if (oldJob) {
+            const state = await oldJob.getState();
+            // If already active or waiting, do not interrupt
+            if (state === 'active' || state === 'waiting' || state === 'delayed') {
+              continue;
+            }
+            await oldJob.remove();
+          }
+        } catch {
+          // ignore lookup errors
+        }
+
+        await emailQueue.add(
+          'send-email',
+          { emailId: email.id },
+          {
+            delay,
+            jobId: `email-${email.id}-${now}`,
+            attempts: 5,
+            backoff: {
+              type: 'exponential',
+              delay: 5000,
+            },
+          }
+        );
+      }
+
       return pendingEmails.length;
     } catch (error) {
       logger.error('Error during scheduled job reconciliation', {
