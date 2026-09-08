@@ -135,16 +135,17 @@ export function SentEmailTable({ data, loading, error, onRetry }: SentTableProps
               <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Subject</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Sent At</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Status</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Ethereal / ID</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border-subtle)]">
             {loading && data.length === 0 ? (
               Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
             ) : error ? (
-              <ErrorRow message={error} onRetry={onRetry} />
+              <ErrorRow message={error} colSpan={5} onRetry={onRetry} />
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={4}>
+                <td colSpan={5}>
                   <EmptyState
                     title="No sent emails yet"
                     description="Emails you send will appear here once they are processed and dispatched."
@@ -185,6 +186,28 @@ export function SentEmailTable({ data, loading, error, onRetry }: SentTableProps
                         </p>
                       )}
                     </div>
+                  </td>
+                  <td className="px-4 py-3.5">
+                    {email.messageId && email.messageId.startsWith('http') ? (
+                      <a
+                        href={email.messageId}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors"
+                        title="Open email in Ethereal"
+                      >
+                        <span>View on Ethereal</span>
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                        </svg>
+                      </a>
+                    ) : email.messageId ? (
+                      <span className="font-mono text-xs text-[var(--text-muted)] max-w-[140px] truncate block" title={email.messageId}>
+                        {email.messageId}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-[var(--text-muted)]">—</span>
+                    )}
                   </td>
                 </tr>
               ))

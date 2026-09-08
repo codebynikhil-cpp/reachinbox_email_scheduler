@@ -115,12 +115,14 @@ export async function processEmailJob(job: Job<EmailJobPayload>): Promise<void> 
 
     // 6. Mark as SENT in Database
     const sentDate = new Date();
+    const recordedMessageId = sendResult.previewUrl ? String(sendResult.previewUrl) : sendResult.messageId;
+
     await prisma.email.update({
       where: { id: emailId },
       data: {
         status: EmailStatus.SENT,
         sentAt: sentDate,
-        messageId: sendResult.messageId,
+        messageId: recordedMessageId,
         error: null,
       },
     });
@@ -129,7 +131,7 @@ export async function processEmailJob(job: Job<EmailJobPayload>): Promise<void> 
     void elasticsearchService.updateEmailStatus(emailId, {
       status: EmailStatus.SENT,
       sentAt: sentDate,
-      messageId: sendResult.messageId,
+      messageId: recordedMessageId,
       error: null,
     });
 

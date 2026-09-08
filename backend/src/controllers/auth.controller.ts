@@ -79,8 +79,10 @@ export class AuthController {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
-      // Redirect back to frontend dashboard (NO token in URL)
-      res.redirect(`${env.FRONTEND_URL}/dashboard`);
+      // Redirect back to frontend dashboard with token query parameter so cross-origin
+      // deployments (e.g. Render backend + Vercel frontend) authenticate reliably
+      const frontendTarget = env.FRONTEND_URL.replace(/\/$/, '');
+      res.redirect(`${frontendTarget}/dashboard?token=${encodeURIComponent(token)}`);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       logger.error('Google OAuth callback handler caught error:', {

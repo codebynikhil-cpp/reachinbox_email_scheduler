@@ -36,16 +36,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Proceed with local state reset even if server logout fails
     } finally {
+      localStorage.removeItem('auth_token');
       setUser(null);
     }
   }, []);
 
-  // On mount: Clean token from query string if backend redirected with ?token=,
-  // then query GET /api/auth/me relying on the HTTP-only cookie set by the backend.
+  // On mount: Store token from query string in localStorage if present,
+  // then query GET /api/auth/me using Bearer token or HTTP-only cookie.
   useEffect(() => {
     const init = async () => {
       const params = new URLSearchParams(window.location.search);
-      if (params.has('token')) {
+      const tokenParam = params.get('token');
+      if (tokenParam) {
+        localStorage.setItem('auth_token', tokenParam);
         const cleanUrl = new URL(window.location.href);
         cleanUrl.searchParams.delete('token');
         window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search);

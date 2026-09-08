@@ -5,6 +5,9 @@ import { logger } from '../utils/logger';
 export const redisOptions: RedisOptions = {
   maxRetriesPerRequest: null, // Required by BullMQ
   enableReadyCheck: false,
+  ...(env.REDIS_URL.startsWith('rediss://')
+    ? { tls: { rejectUnauthorized: false } }
+    : {}),
   retryStrategy(times: number) {
     const delay = Math.min(times * 50, 2000);
     logger.warn(`Redis connection retry attempt #${times}, waiting ${delay}ms`);

@@ -1,7 +1,8 @@
 import apiClient from './api';
 import type { AuthMeResponse, LogoutResponse } from '@/types/api';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5000';
+const rawUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:5000';
+const API_BASE_URL = rawUrl.replace(/\/$/, '');
 
 export const authService = {
   /**
