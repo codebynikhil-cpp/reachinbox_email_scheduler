@@ -84,10 +84,12 @@ A production-grade, distributed, fault-tolerant Email Scheduling & Dispatch Plat
 
 | Layer | Technologies |
 |:---|:---|
-| **Frontend** | React 18, TypeScript, Vite, Vanilla CSS Design System, Lucide Icons, Axios |
+| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS Design System, Axios |
 | **Backend API** | Node.js (Node 20+), Express.js, TypeScript, Prisma ORM, Multer |
-| **Data & Storage** | PostgreSQL (Neon Cloud / Docker), Redis (Upstash / Docker) |
+| **Data & Storage** | PostgreSQL (Neon Cloud / Docker), Redis (Upstash / Docker), Elasticsearch (8.x / Docker) |
 | **Task Queue** | BullMQ (Redis-backed distributed delayed message queue) |
+| **Queue Dashboard**| Live Bull Board UI (`@bull-board/express`) accessible at `/admin/queues` |
+| **Alerting** | Slack OAuth 2.0 & Incoming Webhook real-time alerting on hourly rate-limit hit |
 | **Email Protocol** | Nodemailer, Ethereal SMTP with real-time test preview link generation |
 | **Authentication** | Google OAuth 2.0 (`google-auth-library`), JWT in secure `HttpOnly` cookie |
 | **Testing** | Vitest, Supertest, Unit & Load Simulation Tests |
@@ -98,7 +100,7 @@ A production-grade, distributed, fault-tolerant Email Scheduling & Dispatch Plat
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/) (v20.x or higher)
-- [Docker & Docker Compose](https://www.docker.com/) (for local PostgreSQL & Redis)
+- [Docker & Docker Compose](https://www.docker.com/) (for local PostgreSQL, Redis, and Elasticsearch)
 
 ### 1. Clone the Repository
 ```bash
@@ -110,7 +112,7 @@ cd reachinbox_email_scheduler
 ```bash
 docker-compose up -d
 ```
-*(Starts PostgreSQL on `localhost:5432` and Redis on `localhost:6379`)*
+*(Starts PostgreSQL on `localhost:5432`, Redis on `localhost:6379`, and Elasticsearch on `localhost:9200`)*
 
 ### 3. Configure Backend Environment
 Create `backend/.env` (or copy from `backend/.env.example`):
@@ -126,6 +128,15 @@ JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-client-secret
 GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
+
+# Elasticsearch
+ELASTICSEARCH_NODE=http://localhost:9200
+ELASTICSEARCH_INDEX=emails
+
+# Slack Integration (OAuth & Live Alerting)
+SLACK_CLIENT_ID=your-slack-client-id
+SLACK_CLIENT_SECRET=your-slack-client-secret
+SLACK_REDIRECT_URI=http://localhost:5000/api/slack/callback
 
 # Email & Worker Tuning
 SMTP_HOST=smtp.ethereal.email

@@ -5,6 +5,8 @@ import { env } from '../config/env';
 import { EMAIL_QUEUE_NAME, addEmailJob } from '../queues/email.queue';
 import { smtpService } from '../services/smtp.service';
 import { rateLimitService } from '../services/rate-limit.service';
+import { slackService } from '../services/slack.service';
+import { elasticsearchService } from '../services/elasticsearch.service';
 import { logger } from '../utils/logger';
 import { EmailStatus } from '../types';
 
@@ -70,6 +72,15 @@ export async function processEmailJob(job: Job<EmailJobPayload>): Promise<void> 
 
     const nextScheduledTime = new Date(Date.now() + rateLimit.msUntilNextHour);
 
+    // Live verifiable Slack notification dispatched upon hitting rate limit (as required)
+    void slackService.sendRateLimitAlert(senderId, {
+      currentCount: rateLimit.currentCount,
+      limit: hourlyLimit,
+      nextHourDate: nextScheduledTime,
+      recipient: emailRecord.recipient,
+      emailId,
+    });
+
     // Revert status to SCHEDULED with updated scheduledAt for next hourly window
     await prisma.email.update({
       where: { id: emailId },
@@ -103,14 +114,23 @@ export async function processEmailJob(job: Job<EmailJobPayload>): Promise<void> 
     });
 
     // 6. Mark as SENT in Database
+    const sentDate = new Date();
     await prisma.email.update({
       where: { id: emailId },
       data: {
         status: EmailStatus.SENT,
-        sentAt: new Date(),
+        sentAt: sentDate,
         messageId: sendResult.messageId,
         error: null,
       },
+    });
+
+    // Update status in Elasticsearch
+    void elasticsearchService.updateEmailStatus(emailId, {
+      status: EmailStatus.SENT,
+      sentAt: sentDate,
+      messageId: sendResult.messageId,
+      error: null,
     });
 
     logger.info(`Successfully sent and recorded email ${emailId}`, {
@@ -134,6 +154,10 @@ export async function processEmailJob(job: Job<EmailJobPayload>): Promise<void> 
           error: errorMessage,
         },
       });
+      void elasticsearchService.updateEmailStatus(emailId, {
+        status: EmailStatus.FAILED,
+        error: errorMessage,
+      });
       logger.error(`Max retries reached for email ${emailId}. Permanently marked as FAILED.`);
     } else {
       // Revert to SCHEDULED for BullMQ exponential backoff retry
@@ -143,6 +167,10 @@ export async function processEmailJob(job: Job<EmailJobPayload>): Promise<void> 
           status: EmailStatus.SCHEDULED,
           error: `Attempt ${job.attemptsMade + 1} failed: ${errorMessage}`,
         },
+      });
+      void elasticsearchService.updateEmailStatus(emailId, {
+        status: EmailStatus.SCHEDULED,
+        error: `Attempt ${job.attemptsMade + 1} failed: ${errorMessage}`,
       });
     }
 

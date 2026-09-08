@@ -27,6 +27,15 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional().default(''),
   SMTP_FROM: z.string().default('ReachInbox Scheduler <noreply@reachinbox.ai>'),
 
+  // Elasticsearch
+  ELASTICSEARCH_NODE: z.string().default('http://localhost:9200'),
+  ELASTICSEARCH_INDEX: z.string().default('emails'),
+
+  // Slack Integration (OAuth & Webhook)
+  SLACK_CLIENT_ID: z.string().optional().default(''),
+  SLACK_CLIENT_SECRET: z.string().optional().default(''),
+  SLACK_REDIRECT_URI: z.string().default('http://localhost:5000/api/slack/callback'),
+
   // Scheduler & Rate Limits
   WORKER_CONCURRENCY: z.coerce.number().min(1).default(5),
   MIN_EMAIL_DELAY_MS: z.coerce.number().min(100).default(2000),

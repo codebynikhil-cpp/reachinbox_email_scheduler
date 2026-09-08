@@ -38,4 +38,21 @@ export const emailService = {
     const { data } = await apiClient.get<EmailStatsResponse>('/api/emails/stats');
     return data;
   },
+
+  async searchEmails(params: {
+    q: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const { data } = await apiClient.get('/api/emails/search', {
+      params: {
+        q: params.q,
+        status: params.status,
+        page: params.page ?? 1,
+        limit: params.limit ?? 20,
+      },
+    });
+    return data;
+  },
 };

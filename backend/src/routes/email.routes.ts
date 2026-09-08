@@ -26,4 +26,10 @@ router.get(
   emailController.getStats.bind(emailController)
 );
 
+router.get(
+  '/search',
+  authenticate,
+  emailController.search.bind(emailController)
+);
+
 export default router;

@@ -3,6 +3,7 @@ import { addEmailJobsBulk, emailQueue } from '../queues/email.queue';
 import { CreateCampaignInput } from '../validators/campaign.validator';
 import { logger } from '../utils/logger';
 import { EmailStatus } from '../types';
+import { elasticsearchService } from './elasticsearch.service';
 
 export class CampaignService {
   /**
@@ -69,6 +70,21 @@ export class CampaignService {
     }));
 
     await addEmailJobsBulk(jobPayloads);
+
+    // 4. Index newly created emails into Elasticsearch asynchronously
+    void elasticsearchService.indexEmails(
+      emails.map((e) => ({
+        id: e.id,
+        campaignId: campaign.id,
+        userId,
+        recipient: e.recipient,
+        subject: campaign.subject,
+        body: campaign.body,
+        status: e.status,
+        scheduledAt: e.scheduledAt.toISOString(),
+        createdAt: e.createdAt.toISOString(),
+      }))
+    );
 
     const firstScheduledAt = emails.length > 0 ? emails[0].scheduledAt : baseStartTime;
     const lastScheduledAt =
