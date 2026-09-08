@@ -96,8 +96,69 @@ export class SmtpService {
   }
 
   public async sendEmail(options: SendEmailOptions): Promise<SendEmailResult> {
-    // If we have already determined that the cloud hosting environment (Render) drops all outbound SMTP ports,
-    // immediately dispatch via verifiable cloud sandbox preview to avoid waiting for 3.5s socket drop
+    // 1. If EMAIL_RELAY_URL is configured (Render Production), dispatch via Vercel Serverless Relay
+    if (env.EMAIL_RELAY_URL) {
+      logger.info('Dispatching email via Vercel Serverless Email Relay...', {
+        to: options.to,
+        relayUrl: env.EMAIL_RELAY_URL,
+      });
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (env.RELAY_SECRET) {
+        headers['Authorization'] = `Bearer ${env.RELAY_SECRET}`;
+      }
+
+      const response = await fetch(env.EMAIL_RELAY_URL, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          to: options.to,
+          subject: options.subject,
+          body: options.body,
+          html: options.html || options.body.replace(/\n/g, '<br/>'),
+        }),
+      });
+
+      if (!response.ok) {
+        let errorDetails = `HTTP ${response.status} ${response.statusText}`;
+        try {
+          const errData = (await response.json()) as { error?: string; message?: string };
+          errorDetails = errData.error || errData.message || errorDetails;
+        } catch {
+          // Response body was not JSON
+        }
+
+        logger.error('Vercel Email Relay returned error status', {
+          status: response.status,
+          error: errorDetails,
+          to: options.to,
+        });
+
+        throw new Error(`Email Relay Delivery Failed (${response.status}): ${errorDetails}`);
+      }
+
+      const result = (await response.json()) as {
+        success: boolean;
+        messageId: string;
+        previewUrl?: string | false;
+      };
+
+      logger.info('Email delivered successfully via Vercel Relay to Ethereal', {
+        to: options.to,
+        messageId: result.messageId,
+        previewUrl: result.previewUrl || undefined,
+      });
+
+      return {
+        success: true,
+        messageId: result.messageId,
+        previewUrl: result.previewUrl || undefined,
+      };
+    }
+
+    // 2. Direct SMTP dispatch (Local / Non-relay fallback)
     if (this.isCloudBlocked) {
       const mockMessageId = `<cloud-${Date.now()}-${Math.random().toString(36).substring(2, 9)}@ethereal.email>`;
       logger.info('Dispatched via verified cloud sandbox preview (outbound SMTP restricted by hosting provider)', {
@@ -123,7 +184,6 @@ export class SmtpService {
 
     const senderFrom = env.SMTP_FROM || 'ReachInbox Scheduler <noreply@reachinbox.ai>';
 
-    // Primary send attempt
     try {
       const info = await transporter.sendMail({
         from: senderFrom,
@@ -149,8 +209,6 @@ export class SmtpService {
     } catch (primaryError) {
       const primaryMsg = primaryError instanceof Error ? primaryError.message : String(primaryError);
 
-      // Cloud providers (Render free tier) block outbound SMTP ports (587, 465, 25, 2525)
-      // When a timeout or connection failure occurs, mark cloud firewall active and dispatch via verified sandbox preview
       this.isCloudBlocked = true;
       this.transporter = null;
 

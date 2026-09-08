@@ -27,6 +27,10 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional().default(''),
   SMTP_FROM: z.string().default('ReachInbox Scheduler <noreply@reachinbox.ai>'),
 
+  // Email Relay (Vercel Serverless Relay)
+  EMAIL_RELAY_URL: z.string().optional().default(''),
+  RELAY_SECRET: z.string().optional().default(''),
+
   // Elasticsearch
   ELASTICSEARCH_NODE: z.string().default('http://localhost:9200'),
   ELASTICSEARCH_INDEX: z.string().default('emails'),
