@@ -15,11 +15,11 @@ export class EmailService {
 
     const whereClause: {
       campaign: { userId: string };
-      status: EmailStatus;
+      status: { in: EmailStatus[] };
       campaignId?: string;
     } = {
       campaign: { userId },
-      status: EmailStatus.SCHEDULED,
+      status: { in: [EmailStatus.SCHEDULED, EmailStatus.PROCESSING] },
     };
 
     if (campaignId) {

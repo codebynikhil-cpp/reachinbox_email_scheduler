@@ -84,6 +84,18 @@ export function Stats({ refreshKey }: StatsProps = {}) {
       borderColor: 'border-blue-500/20',
     },
     {
+      label: 'Processing',
+      value: stats?.processing ?? 0,
+      icon: (
+        <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      ),
+      color: 'text-amber-400',
+      bgColor: 'bg-amber-500/10',
+      borderColor: 'border-amber-500/20',
+    },
+    {
       label: 'Sent',
       value: stats?.sent ?? 0,
       icon: (
@@ -111,14 +123,14 @@ export function Stats({ refreshKey }: StatsProps = {}) {
 
   if (loading && !stats) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[0, 1, 2, 3].map((i) => <StatSkeleton key={i} />)}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {[0, 1, 2, 3, 4].map((i) => <StatSkeleton key={i} />)}
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
       {cards.map((card) => (
         <StatCard key={card.label} {...card} />
       ))}

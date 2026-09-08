@@ -109,6 +109,23 @@ export class CampaignService {
    */
   public async reconcileScheduledJobs(): Promise<number> {
     try {
+      // 1. Recover stale PROCESSING emails older than 60 seconds
+      const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
+      const staleResult = await prisma.email.updateMany({
+        where: {
+          status: EmailStatus.PROCESSING,
+          updatedAt: { lt: oneMinuteAgo },
+        },
+        data: {
+          status: EmailStatus.SCHEDULED,
+        },
+      });
+
+      if (staleResult.count > 0) {
+        logger.info(`Reconciled ${staleResult.count} stale PROCESSING emails back to SCHEDULED.`);
+      }
+
+      // 2. Fetch all SCHEDULED emails to ensure they are enqueued in BullMQ
       const pendingEmails = await prisma.email.findMany({
         where: {
           status: EmailStatus.SCHEDULED,

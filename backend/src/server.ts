@@ -35,9 +35,22 @@ async function startServer() {
       });
     });
 
+    // 3. Recurring 30s watchdog: recovers any stale processing jobs & guarantees overdue emails are enqueued
+    const watchdogInterval = setInterval(async () => {
+      try {
+        await campaignService.reconcileScheduledJobs();
+      } catch (err) {
+        logger.warn('Watchdog reconciliation cycle error', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }, 30000);
+    watchdogInterval.unref();
+
     // Graceful Shutdown
     const shutdown = async (signal: string) => {
       logger.info(`Received ${signal}. Starting graceful shutdown...`);
+      clearInterval(watchdogInterval);
       server.close(async () => {
         logger.info('HTTP server closed.');
         await emailWorker.close();

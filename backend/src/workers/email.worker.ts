@@ -43,7 +43,7 @@ export async function processEmailJob(job: Job<EmailJobPayload>): Promise<void> 
   const updateResult = await prisma.email.updateMany({
     where: {
       id: emailId,
-      status: EmailStatus.SCHEDULED,
+      status: { in: [EmailStatus.SCHEDULED, EmailStatus.PROCESSING] },
     },
     data: {
       status: EmailStatus.PROCESSING,
