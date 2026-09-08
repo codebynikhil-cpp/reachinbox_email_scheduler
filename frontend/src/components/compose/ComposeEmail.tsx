@@ -221,13 +221,13 @@ export function ComposeEmail({ isOpen, onClose, onSuccess }: ComposeEmailProps) 
               label="Delay Between Emails (ms)"
               id="compose-delay"
               type="number"
-              min="1"
-              step="100"
+              min="500"
+              step="500"
               value={form.delayMs}
               onChange={(e) => setField('delayMs', e.target.value)}
               error={errors.delayMs}
               required
-              hint="Min gap between consecutive sends"
+              hint={`Interval: ${(Number(form.delayMs) / 1000 || 2).toFixed(1)} seconds per email`}
             />
             <Input
               label="Hourly Limit"
@@ -239,9 +239,18 @@ export function ComposeEmail({ isOpen, onClose, onSuccess }: ComposeEmailProps) 
               onChange={(e) => setField('hourlyLimit', e.target.value)}
               error={errors.hourlyLimit}
               required
-              hint="Max emails per hour"
+              hint="Max emails sent in 1 hour"
             />
           </div>
+
+          {uploadResult && uploadResult.uniqueEmails > 0 && (
+            <div className="text-xs text-[var(--text-muted)] bg-[var(--bg-surface)] p-2.5 rounded-lg border border-[var(--border-subtle)] flex items-center justify-between">
+              <span>Estimated campaign duration:</span>
+              <span className="font-semibold text-indigo-400">
+                ~{Math.round(((uploadResult.uniqueEmails - 1) * (Number(form.delayMs) || 2000)) / 1000)} seconds
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Recipients summary */}
