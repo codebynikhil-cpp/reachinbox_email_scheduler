@@ -48,6 +48,16 @@ export function SentEmails({ refreshKey = 0 }: SentEmailsProps) {
     }
   }, [fetch, page, refreshKey, searchQuery]);
 
+  // Periodic background sync so newly sent emails appear dynamically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!searchQuery.trim()) {
+        void fetch(page, 20, true);
+      }
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [fetch, page, searchQuery]);
+
   const displayData = searchResults !== null ? searchResults : data;
   const isSearching = Boolean(searchQuery.trim());
   const isLoading = loading || searchLoading;

@@ -26,17 +26,21 @@ function initialState<T>(): EmailsState<T> {
 export function useScheduledEmails() {
   const [state, setState] = useState<EmailsState<ScheduledEmail>>(initialState());
 
-  const fetch = useCallback(async (page = 1, limit = 20) => {
-    setState((prev) => ({ ...prev, loading: true, error: null }));
+  const fetch = useCallback(async (page = 1, limit = 20, silent = false) => {
+    if (!silent) {
+      setState((prev) => ({ ...prev, loading: true, error: null }));
+    }
     try {
       const result = await emailService.getScheduled({ page, limit });
       setState({ data: result.data, pagination: result.pagination, loading: false, error: null });
     } catch {
-      setState((prev) => ({
-        ...prev,
-        loading: false,
-        error: 'Failed to load scheduled emails. Please try again.',
-      }));
+      if (!silent) {
+        setState((prev) => ({
+          ...prev,
+          loading: false,
+          error: 'Failed to load scheduled emails. Please try again.',
+        }));
+      }
     }
   }, []);
 
@@ -46,17 +50,21 @@ export function useScheduledEmails() {
 export function useSentEmails() {
   const [state, setState] = useState<EmailsState<SentEmail>>(initialState());
 
-  const fetch = useCallback(async (page = 1, limit = 20) => {
-    setState((prev) => ({ ...prev, loading: true, error: null }));
+  const fetch = useCallback(async (page = 1, limit = 20, silent = false) => {
+    if (!silent) {
+      setState((prev) => ({ ...prev, loading: true, error: null }));
+    }
     try {
       const result = await emailService.getSent({ page, limit });
       setState({ data: result.data, pagination: result.pagination, loading: false, error: null });
     } catch {
-      setState((prev) => ({
-        ...prev,
-        loading: false,
-        error: 'Failed to load sent emails. Please try again.',
-      }));
+      if (!silent) {
+        setState((prev) => ({
+          ...prev,
+          loading: false,
+          error: 'Failed to load sent emails. Please try again.',
+        }));
+      }
     }
   }, []);
 

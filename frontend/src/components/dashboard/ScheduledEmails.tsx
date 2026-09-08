@@ -49,6 +49,16 @@ export function ScheduledEmails({ refreshKey = 0 }: ScheduledEmailsProps) {
     }
   }, [fetch, page, refreshKey, searchQuery]);
 
+  // Periodic background sync so scheduled emails disappear dynamically once sent
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!searchQuery.trim()) {
+        void fetch(page, 20, true);
+      }
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [fetch, page, searchQuery]);
+
   const displayData = searchResults !== null ? searchResults : data;
   const isSearching = Boolean(searchQuery.trim());
   const isLoading = loading || searchLoading;
