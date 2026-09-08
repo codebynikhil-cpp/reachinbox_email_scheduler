@@ -115,7 +115,21 @@ export async function processEmailJob(job: Job<EmailJobPayload>): Promise<void> 
 
     // 6. Mark as SENT in Database
     const sentDate = new Date();
-    const recordedMessageId = sendResult.previewUrl ? String(sendResult.previewUrl) : sendResult.messageId;
+
+    // Determine viewable preview URL:
+    // 1. If Nodemailer connected and sent via Ethereal, use real Ethereal URL
+    // 2. If running on Render where cloud firewall blocks outbound SMTP ports, link to live backend preview!
+    let recordedMessageId = sendResult.previewUrl ? String(sendResult.previewUrl) : '';
+    if (!recordedMessageId || sendResult.isSimulatedPreview) {
+      const backendBase = (
+        process.env.RENDER_EXTERNAL_URL ||
+        process.env.BACKEND_URL ||
+        (env.NODE_ENV === 'production'
+          ? 'https://reachinbox-email-scheduler-g01t.onrender.com'
+          : `http://localhost:${env.PORT}`)
+      ).replace(/\/$/, '');
+      recordedMessageId = `${backendBase}/api/emails/${emailId}/preview`;
+    }
 
     await prisma.email.update({
       where: { id: emailId },

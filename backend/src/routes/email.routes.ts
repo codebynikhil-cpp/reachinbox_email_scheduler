@@ -32,4 +32,7 @@ router.get(
   emailController.search.bind(emailController)
 );
 
+// Public verifiable preview of delivered email
+router.get('/:id/preview', emailController.preview.bind(emailController));
+
 export default router;
