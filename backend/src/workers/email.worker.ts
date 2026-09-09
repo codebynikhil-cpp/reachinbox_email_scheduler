@@ -47,7 +47,6 @@ export async function processEmailJob(job: Job<EmailJobPayload>): Promise<void> 
     },
     data: {
       status: EmailStatus.PROCESSING,
-      attempts: { increment: 1 },
     },
   });
 
@@ -167,6 +166,7 @@ export async function processEmailJob(job: Job<EmailJobPayload>): Promise<void> 
         where: { id: emailId },
         data: {
           status: EmailStatus.FAILED,
+          attempts: { increment: 1 },
           error: errorMessage,
         },
       });
@@ -181,6 +181,7 @@ export async function processEmailJob(job: Job<EmailJobPayload>): Promise<void> 
         where: { id: emailId },
         data: {
           status: EmailStatus.SCHEDULED,
+          attempts: { increment: 1 },
           error: `Attempt ${job.attemptsMade + 1} failed: ${errorMessage}`,
         },
       });

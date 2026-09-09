@@ -109,7 +109,7 @@ export class CampaignService {
    */
   public async reconcileScheduledJobs(): Promise<number> {
     try {
-      // 1. Recover stale PROCESSING emails older than 60 seconds
+      // 1. Recover stale PROCESSING emails older than 60 seconds (crash recovery)
       const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
       const staleResult = await prisma.email.updateMany({
         where: {
@@ -125,23 +125,7 @@ export class CampaignService {
         logger.info(`Reconciled ${staleResult.count} stale PROCESSING emails back to SCHEDULED.`);
       }
 
-      // 2. Permanently mark emails that exceeded max retry attempts (>= 5) as FAILED
-      const maxAttemptsResult = await prisma.email.updateMany({
-        where: {
-          status: EmailStatus.SCHEDULED,
-          attempts: { gte: 5 },
-        },
-        data: {
-          status: EmailStatus.FAILED,
-          error: 'Maximum retry attempts exceeded during previous dispatch',
-        },
-      });
-
-      if (maxAttemptsResult.count > 0) {
-        logger.info(`Marked ${maxAttemptsResult.count} max-attempt emails as FAILED.`);
-      }
-
-      // 3. Fetch all active SCHEDULED emails to ensure they are enqueued and running in BullMQ
+      // 2. Fetch active SCHEDULED emails to ensure they have jobs in BullMQ
       const pendingEmails = await prisma.email.findMany({
         where: {
           status: EmailStatus.SCHEDULED,
@@ -157,40 +141,45 @@ export class CampaignService {
         return 0;
       }
 
-      logger.info(`Reconciling ${pendingEmails.length} SCHEDULED emails with BullMQ...`);
       const now = Date.now();
+      let reEnqueuedCount = 0;
 
-      // For each pending email, clean up any previous stalled job key in Redis and enqueue fresh
+      // Ensure each pending email has a single valid job in BullMQ
       for (const email of pendingEmails) {
-        const delay = Math.max(0, email.scheduledAt.getTime() - now);
-
+        const jobId = `email-${email.id}`;
         try {
-          const oldJob = await emailQueue.getJob(`email-${email.id}`);
+          const oldJob = await emailQueue.getJob(jobId);
           if (oldJob) {
             const state = await oldJob.getState();
-            // If already active or waiting, do not interrupt
+            // If already active, waiting, or delayed in queue, leave it alone
             if (state === 'active' || state === 'waiting' || state === 'delayed') {
               continue;
             }
             await oldJob.remove();
           }
+
+          const delay = Math.max(0, email.scheduledAt.getTime() - now);
+          await emailQueue.add(
+            'send-email',
+            { emailId: email.id },
+            {
+              delay,
+              jobId,
+              attempts: 5,
+              backoff: {
+                type: 'exponential',
+                delay: 5000,
+              },
+            }
+          );
+          reEnqueuedCount++;
         } catch {
           // ignore lookup errors
         }
+      }
 
-        await emailQueue.add(
-          'send-email',
-          { emailId: email.id },
-          {
-            delay,
-            jobId: `email-${email.id}-${now}`,
-            attempts: 5,
-            backoff: {
-              type: 'exponential',
-              delay: 5000,
-            },
-          }
-        );
+      if (reEnqueuedCount > 0) {
+        logger.info(`Re-enqueued ${reEnqueuedCount} missing SCHEDULED email jobs into BullMQ.`);
       }
 
       return pendingEmails.length;

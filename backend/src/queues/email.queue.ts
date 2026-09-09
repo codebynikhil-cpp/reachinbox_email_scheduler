@@ -35,6 +35,15 @@ export async function addEmailJob(
   const delay = Math.max(0, scheduledAt.getTime() - now);
   const jobId = `email-${emailId}`;
 
+  try {
+    const existingJob = await emailQueue.getJob(jobId);
+    if (existingJob) {
+      await existingJob.remove();
+    }
+  } catch {
+    // Ignore error if job does not exist
+  }
+
   await emailQueue.add(
     'send-email',
     { emailId },
